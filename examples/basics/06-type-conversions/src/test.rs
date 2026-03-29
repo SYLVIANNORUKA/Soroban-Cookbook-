@@ -1,9 +1,17 @@
 //! Test suite for the Type Conversions contract.
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 //!
 //! Tests use the generated contract client so the full host dispatch path is
 //! exercised, matching the pattern used across the rest of the cookbook.
+=======
+//!
+//! Tests use the generated contract client so the full host dispatch path is
+//! exercised, matching the pattern used across the rest of the cookbook.
+
+#![cfg(test)]
+>>>>>>> b8cbd72 (fix: cli issue)
 
 #![cfg(test)]
 >>>>>>> c80f79a (fix: cli issues)
@@ -16,6 +24,13 @@ fn setup(env: &Env) -> TypeConversionsContractClient {
     let id = env.register_contract(None, TypeConversionsContract);
     TypeConversionsContractClient::new(env, &id)
 }
+
+fn setup(env: &Env) -> TypeConversionsContractClient {
+    let id = env.register_contract(None, TypeConversionsContract);
+    TypeConversionsContractClient::new(env, &id)
+}
+
+// ── convert_numbers ───────────────────────────────────────────────────────────
 
 fn setup(env: &Env) -> TypeConversionsContractClient {
     let id = env.register_contract(None, TypeConversionsContract);
@@ -53,31 +68,21 @@ fn test_convert_numbers_unsupported_type() {
     let env = Env::default();
     setup(&env).convert_numbers(&42, &99);
 <<<<<<< HEAD
+<<<<<<< HEAD
 }
 
 #[test]
 fn test_convert_strings_to_symbol() {
     let env = Env::default();
     let client = setup(&env);
-    let input = String::from_str(&env, "hello");
-    let (s, sym) = client.convert_strings(&input, &true);
-    assert_eq!(s, input);
-    assert_eq!(sym, Symbol::new(&env, "hello"));
-}
-
-#[test]
-fn test_convert_strings_from_symbol() {
-    let env = Env::default();
-    let client = setup(&env);
-    let input = String::from_str(&env, "hello");
     //! Test suite for the Type Conversions contract.
-
+    //!
     //! Tests use the generated contract client so the full host dispatch path is
     //! exercised, matching the pattern used across the rest of the cookbook.
 
     #![cfg(test)]
     use super::*;
-    use soroban_sdk::{Env, TryFromVal};
+    use soroban_sdk::{Env, Address, Bytes, Map, Symbol, Vec as SVec, symbol_short};
 
     fn setup(env: &Env) -> TypeConversionsContractClient {
         let id = env.register_contract(None, TypeConversionsContract);
@@ -141,7 +146,6 @@ fn test_convert_strings_from_symbol() {
     #[should_panic(expected = "InvalidStringFormat")]
     fn test_convert_strings_too_long() {
         let env = Env::default();
-        // 33 characters — exceeds Symbol limit of 32
         let long = String::from_str(&env, "this_string_is_thirty_three_chars_!");
         setup(&env).convert_strings(&long, &true);
     }
@@ -152,7 +156,7 @@ fn test_convert_strings_from_symbol() {
     fn test_convert_collections() {
         let env = Env::default();
         let client = setup(&env);
-        let mut input = Vec::new(&env);
+        let mut input = SVec::new(&env);
         input.push_back(1i32);
         input.push_back(-2i32);
         input.push_back(100i32);
@@ -166,7 +170,7 @@ fn test_convert_strings_from_symbol() {
     #[test]
     fn test_convert_collections_empty() {
         let env = Env::default();
-        let input: Vec<i32> = Vec::new(&env);
+        let input: SVec<i32> = SVec::new(&env);
         assert_eq!(setup(&env).convert_collections(&input).len(), 0);
     }
 
@@ -212,6 +216,8 @@ fn test_convert_strings_from_symbol() {
         assert_eq!(v, -1);
     }
 
+    // ── create_user_data ──────────────────────────────────────────────────────────
+
     #[test]
     fn test_create_user_data_success() {
         let env = Env::default();
@@ -240,13 +246,15 @@ fn test_convert_strings_from_symbol() {
         setup(&env).create_user_data(&1u64, &name, &-100i128, &true);
     }
 
+    // ── convert_val_to_config ─────────────────────────────────────────────────────
+
     #[test]
     fn test_convert_val_to_config() {
         let env = Env::default();
         let client = setup(&env);
 
         let admin = Address::generate(&env);
-        let mut features = Vec::new(&env);
+        let mut features = SVec::new(&env);
         features.push_back(symbol_short!("feat1"));
         features.push_back(symbol_short!("feat2"));
 
@@ -254,10 +262,7 @@ fn test_convert_strings_from_symbol() {
         map.set(Symbol::new(&env, "max_users"), 100u32.into_val(&env));
         map.set(Symbol::new(&env, "fee_rate"), 250u64.into_val(&env));
         map.set(Symbol::new(&env, "admin"), admin.clone().into_val(&env));
-        map.set(
-            Symbol::new(&env, "features"),
-            features.clone().into_val(&env),
-        );
+        map.set(Symbol::new(&env, "features"), features.clone().into_val(&env));
 
         let config = client.convert_val_to_config(&map);
         assert_eq!(config.max_users, 100);
@@ -275,6 +280,8 @@ fn test_convert_strings_from_symbol() {
         setup(&env).convert_val_to_config(&map);
     }
 
+    // ── convert_bytes_to_types ────────────────────────────────────────────────────
+
     #[test]
     fn test_convert_bytes_to_types() {
         let env = Env::default();
@@ -285,6 +292,8 @@ fn test_convert_strings_from_symbol() {
         assert_eq!(sym, Symbol::new(&env, "hello_world"));
         assert_eq!(bytes_out, input_bytes);
     }
+
+    // ── validate_and_convert ──────────────────────────────────────────────────────
 
     #[test]
     fn test_validate_and_convert_number() {
@@ -320,8 +329,8 @@ fn test_convert_strings_from_symbol() {
     #[test]
     fn test_validate_and_convert_address() {
         let env = Env::default();
-        let addr =
-            String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+        // 56-character Stellar G-address
+        let addr = String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
         let result = setup(&env).validate_and_convert(&addr, &3);
         assert_eq!(result, addr);
     }
@@ -340,18 +349,21 @@ fn test_convert_strings_from_symbol() {
         setup(&env).validate_and_convert(&String::from_str(&env, "value"), &99);
     }
 
+    // ── batch_convert_numbers ─────────────────────────────────────────────────────
+
     #[test]
     fn test_batch_convert_numbers_mixed() {
         let env = Env::default();
         let client = setup(&env);
 
-        let mut input = Vec::new(&env);
+        let mut input = SVec::new(&env);
         input.push_back(String::from_str(&env, "123"));
         input.push_back(String::from_str(&env, "invalid"));
         input.push_back(String::from_str(&env, "-456"));
         input.push_back(String::from_str(&env, "789"));
 
         let result = client.batch_convert_numbers(&input);
+        // "invalid" is skipped; the three numeric strings are converted
         assert_eq!(result.len(), 3);
         assert_eq!(result.get(0).unwrap(), 123i64);
         assert_eq!(result.get(1).unwrap(), -456i64);
@@ -363,7 +375,7 @@ fn test_convert_strings_from_symbol() {
         let env = Env::default();
         let client = setup(&env);
 
-        let mut input = Vec::new(&env);
+        let mut input = SVec::new(&env);
         input.push_back(String::from_str(&env, ""));
         input.push_back(String::from_str(&env, "abc"));
         input.push_back(String::from_str(&env, "-"));
@@ -374,9 +386,11 @@ fn test_convert_strings_from_symbol() {
     #[test]
     fn test_batch_convert_numbers_empty_input() {
         let env = Env::default();
-        let input: Vec<String> = Vec::new(&env);
+        let input: SVec<String> = SVec::new(&env);
         assert_eq!(setup(&env).batch_convert_numbers(&input).len(), 0);
     }
+
+    // ── sum_different_types ───────────────────────────────────────────────────────
 
     #[test]
     fn test_sum_different_types() {
@@ -384,11 +398,10 @@ fn test_convert_strings_from_symbol() {
         let client = setup(&env);
         assert_eq!(client.sum_different_types(&100u32, &-50i64), 50i128);
         assert_eq!(client.sum_different_types(&0u32, &0i64), 0i128);
-        assert_eq!(
-            client.sum_different_types(&u32::MAX, &0i64),
-            u32::MAX as i128
-        );
+        assert_eq!(client.sum_different_types(&u32::MAX, &0i64), u32::MAX as i128);
     }
+
+    // ── val_roundtrip ─────────────────────────────────────────────────────────────
 
     #[test]
     fn test_val_roundtrip() {
@@ -422,6 +435,177 @@ fn test_convert_strings_from_symbol() {
         assert_eq!(client.sum_different_types(&100u32, &200i64), 300i128);
         assert_eq!(client.val_roundtrip(&42u32), 42u32);
     }
+
+#[test]
+fn test_create_user_data_success() {
+    let env = Env::default();
+    let client = setup(&env);
+    let name = String::from_str(&env, "alice");
+    let user = client.create_user_data(&1u64, &name, &1000i128, &true);
+    assert_eq!(user.id, 1);
+    assert_eq!(user.name, name);
+    assert_eq!(user.balance, 1000);
+    assert!(user.active);
+}
+
+#[test]
+#[should_panic(expected = "InvalidStringFormat")]
+fn test_create_user_data_name_too_long() {
+    let env = Env::default();
+    let long = String::from_str(&env, "this_name_is_way_too_long_for_a_symbol_and_should_fail");
+    setup(&env).create_user_data(&1u64, &long, &1000i128, &true);
+}
+
+#[test]
+#[should_panic(expected = "NumericOverflow")]
+fn test_create_user_data_negative_balance() {
+    let env = Env::default();
+    let name = String::from_str(&env, "alice");
+    setup(&env).create_user_data(&1u64, &name, &-100i128, &true);
+}
+
+// ── convert_val_to_config ─────────────────────────────────────────────────────
+
+#[test]
+fn test_convert_val_to_config() {
+    let env = Env::default();
+    let client = setup(&env);
+
+    let admin = Address::generate(&env);
+    let mut features = Vec::new(&env);
+    features.push_back(symbol_short!("feat1"));
+    features.push_back(symbol_short!("feat2"));
+
+    let mut map = Map::new(&env);
+    map.set(Symbol::new(&env, "max_users"), 100u32.into_val(&env));
+    map.set(Symbol::new(&env, "fee_rate"), 250u64.into_val(&env));
+    map.set(Symbol::new(&env, "admin"), admin.clone().into_val(&env));
+    map.set(Symbol::new(&env, "features"), features.clone().into_val(&env));
+
+    let config = client.convert_val_to_config(&map);
+    assert_eq!(config.max_users, 100);
+    assert_eq!(config.fee_rate, 250);
+    assert_eq!(config.admin, admin);
+    assert_eq!(config.features, features);
+}
+
+#[test]
+#[should_panic(expected = "UnsupportedConversion")]
+fn test_convert_val_to_config_missing_field() {
+    let env = Env::default();
+    let mut map = Map::new(&env);
+    map.set(Symbol::new(&env, "max_users"), 100u32.into_val(&env));
+    setup(&env).convert_val_to_config(&map);
+}
+
+// ── convert_bytes_to_types ────────────────────────────────────────────────────
+
+#[test]
+fn test_convert_bytes_to_types() {
+    let env = Env::default();
+    let client = setup(&env);
+    let input_bytes = Bytes::from_slice(&env, b"hello_world");
+    let (s, sym, bytes_out) = client.convert_bytes_to_types(&input_bytes);
+    assert_eq!(s, String::from_str(&env, "hello_world"));
+    assert_eq!(sym, Symbol::new(&env, "hello_world"));
+    assert_eq!(bytes_out, input_bytes);
+}
+
+// ── validate_and_convert ──────────────────────────────────────────────────────
+
+#[test]
+fn test_validate_and_convert_number() {
+    let env = Env::default();
+    let input = String::from_str(&env, "12345");
+    let result = setup(&env).validate_and_convert(&input, &1);
+    assert_eq!(result, input);
+}
+
+#[test]
+#[should_panic(expected = "InvalidStringFormat")]
+fn test_validate_and_convert_empty_number() {
+    let env = Env::default();
+    setup(&env).validate_and_convert(&String::from_str(&env, ""), &1);
+}
+
+#[test]
+fn test_validate_and_convert_symbol() {
+    let env = Env::default();
+    let input = String::from_str(&env, "valid_symbol");
+    let result = setup(&env).validate_and_convert(&input, &2);
+    assert_eq!(result, input);
+}
+
+#[test]
+#[should_panic(expected = "InvalidStringFormat")]
+fn test_validate_and_convert_symbol_too_long() {
+    let env = Env::default();
+    let long = String::from_str(&env, "this_symbol_name_is_way_too_long_to_be_valid");
+    setup(&env).validate_and_convert(&long, &2);
+}
+
+#[test]
+fn test_validate_and_convert_address() {
+    let env = Env::default();
+    // 56-character Stellar G-address
+    let addr = String::from_str(&env, "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA");
+    let result = setup(&env).validate_and_convert(&addr, &3);
+    assert_eq!(result, addr);
+}
+
+#[test]
+#[should_panic(expected = "InvalidAddress")]
+fn test_validate_and_convert_invalid_address() {
+    let env = Env::default();
+    setup(&env).validate_and_convert(&String::from_str(&env, "too_short"), &3);
+}
+
+#[test]
+#[should_panic(expected = "UnsupportedConversion")]
+fn test_validate_and_convert_unsupported_type() {
+    let env = Env::default();
+    setup(&env).validate_and_convert(&String::from_str(&env, "value"), &99);
+}
+
+// ── batch_convert_numbers ─────────────────────────────────────────────────────
+
+#[test]
+fn test_batch_convert_numbers_mixed() {
+    let env = Env::default();
+    let client = setup(&env);
+
+    let mut input = Vec::new(&env);
+    input.push_back(String::from_str(&env, "123"));
+    input.push_back(String::from_str(&env, "invalid"));
+    input.push_back(String::from_str(&env, "-456"));
+    input.push_back(String::from_str(&env, "789"));
+
+    let result = client.batch_convert_numbers(&input);
+    // "invalid" is skipped; the three numeric strings are converted
+    assert_eq!(result.len(), 3);
+    assert_eq!(result.get(0).unwrap(), 123i64);
+    assert_eq!(result.get(1).unwrap(), -456i64);
+    assert_eq!(result.get(2).unwrap(), 789i64);
+}
+
+#[test]
+fn test_batch_convert_numbers_all_invalid() {
+    let env = Env::default();
+    let client = setup(&env);
+
+    let mut input = Vec::new(&env);
+    input.push_back(String::from_str(&env, ""));
+    input.push_back(String::from_str(&env, "abc"));
+    input.push_back(String::from_str(&env, "-"));
+
+    assert_eq!(client.batch_convert_numbers(&input).len(), 0);
+}
+>>>>>>> b8cbd72 (fix: cli issue)
+
+#[test]
+fn test_batch_convert_numbers_empty_input() {
+    let env = Env::default();
+    let input: Vec<String> = Vec::new(&env);
     assert_eq!(setup(&env).batch_convert_numbers(&input).len(), 0);
 }
 
@@ -433,10 +617,14 @@ fn test_sum_different_types() {
     let client = setup(&env);
     assert_eq!(client.sum_different_types(&100u32, &-50i64), 50i128);
     assert_eq!(client.sum_different_types(&0u32, &0i64), 0i128);
+<<<<<<< HEAD
     assert_eq!(
         client.sum_different_types(&u32::MAX, &0i64),
         u32::MAX as i128
     );
+=======
+    assert_eq!(client.sum_different_types(&u32::MAX, &0i64), u32::MAX as i128);
+>>>>>>> b8cbd72 (fix: cli issue)
 }
 
 // ── val_roundtrip ─────────────────────────────────────────────────────────────
@@ -451,10 +639,15 @@ fn test_val_roundtrip() {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 // ── integration ───────────────────────────────────────────────────────────────
 
 >>>>>>> c80f79a (fix: cli issues)
+=======
+// ── integration ───────────────────────────────────────────────────────────────
+
+>>>>>>> b8cbd72 (fix: cli issue)
 #[test]
 fn test_val_conversion_roundtrip_via_safe_conversions() {
     let env = Env::default();
@@ -478,7 +671,10 @@ fn test_complex_conversion_workflow() {
     assert_eq!(client.sum_different_types(&100u32, &200i64), 300i128);
     assert_eq!(client.val_roundtrip(&42u32), 42u32);
 <<<<<<< HEAD
+<<<<<<< HEAD
 }
 =======
 >>>>>>> c80f79a (fix: cli issues)
+=======
+>>>>>>> b8cbd72 (fix: cli issue)
 }

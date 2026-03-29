@@ -149,12 +149,7 @@ impl TypeConversionsContract {
         if balance < 0 {
             panic!("NumericOverflow");
         }
-        UserData {
-            id,
-            name,
-            balance,
-            active,
-        }
+        UserData { id, name, balance, active }
     }
 
     /// Demonstrates `Val` → typed field extraction using a `Map<Symbol, Val>`.
@@ -255,7 +250,6 @@ impl TypeConversionsContract {
                     valid = false;
                     break;
                 }
-<<<<<<< HEAD
                 // checked_mul / checked_add to avoid overflow panics
                 acc = match acc.checked_mul(10).and_then(|v| v.checked_add((b - b'0') as i64)) {
                     Some(v) => v,
