@@ -66,6 +66,7 @@ pub struct TypeConversionsContract;
 impl TypeConversionsContract {
     /// Demonstrates numeric TryFrom/TryInto conversions with overflow checking.
     pub fn convert_numbers(_env: Env, value: i128, target_type: u32) -> i128 {
+        let _ = _env; // Suppress unused parameter warning
         match target_type {
             1 => {
                 let converted: u32 = value
@@ -143,6 +144,7 @@ impl TypeConversionsContract {
         balance: i128,
         active: bool,
     ) -> UserData {
+        let _ = _env; // Suppress unused parameter warning
         if name.len() > 32 {
             panic!("InvalidStringFormat");
         }
@@ -271,9 +273,10 @@ impl TypeConversionsContract {
     /// Demonstrates widening conversions between different numeric types.
     
     pub fn sum_different_types(_env: Env, input_u32: u32, input_i64: i64) -> i128 {
-        let a: i128 = input_u32.into();
-        let b: i128 = input_i64.into();
-        a + b
+        let _ = _env; // Suppress unused parameter warning
+        let converted_u32: i128 = input_u32.into();
+        let converted_i64: i128 = input_i64.into();
+        converted_u32 + converted_i64
     }
 
     /// Demonstrates a full `u32` → `Val` → `u32` roundtrip.
