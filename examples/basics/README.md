@@ -22,6 +22,14 @@ Each example includes:
 - Comprehensive unit tests
 - A README with usage and build instructions
 
+## Getting Started
+
+Each example includes:
+
+- Complete source code with inline documentation
+- Comprehensive unit tests
+- A README with usage and build instructions
+
 To run an example locally:
 
 ```bash
