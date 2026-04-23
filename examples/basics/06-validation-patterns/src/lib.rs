@@ -474,11 +474,19 @@ impl ValidationContract {
 
         // Special checks for owner and admin
         match required_role {
+<<<<<<< HEAD
             UserRole::Owner => {
                 // User role is already validated to be >= Owner, so must be Owner
             }
             UserRole::Admin => {
                 // User role is already validated to be >= Admin, so must be Admin or Owner
+=======
+                UserRole::Owner if user_role != UserRole::Owner => {
+                    return Err(ValidationError::NotOwner);
+                }
+                UserRole::Admin if user_role != UserRole::Admin && user_role != UserRole::Owner => {
+                    return Err(ValidationError::NotAdmin);
+>>>>>>> aad9954 (Fix clippy collapsible-match violations in role validation.)
             }
             _ => {}
         }
