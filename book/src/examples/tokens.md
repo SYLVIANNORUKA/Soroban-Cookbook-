@@ -20,6 +20,14 @@ Fungible tokens, standards, wrappers.
 - Burn/withdraw
 - Pausable emergency
 
+### Token Optimization
+**Batch transfer and storage optimization**.
+
+**Key Concepts:**
+- Single-auth batch transfers
+- Consolidated sender storage writes
+- Before/after budget benchmarks
+
 ## Placeholder
 `examples/tokens/` directory ready.
 
