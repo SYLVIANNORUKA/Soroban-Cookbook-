@@ -2,27 +2,24 @@
 
 Fungible tokens, standards, wrappers.
 
-## Token Examples
-
-### SEP-41 Token
-A minimal SEP-41-compliant custom token implementation with metadata, transfer events, allowance support, minting, and burning.
+### Mint/Burn Token [./mint-burn/](../examples/tokens/mint-burn/)
+**Controlled issuance and destruction.** Demonstrates admin-only minting, user burn rights, total supply tracking, and optional maximum supply caps.
 
 **Key Concepts:**
-- Mint/burn controls
-- Transfer/approval
-- Metadata
-- Transfer event emission
+- Admin authorization for minting
+- Safe burn semantics
+- Total supply invariants
+- Optional supply cap enforcement
+- Event emission for mint/burn operations
 
-### Token Wrapper
-**Wrap native assets**.
+### Token Wrapper [./token-wrapper/](../examples/tokens/token-wrapper/)
+**Wrap native assets.** Deposit an existing SEP-41 token and mint 1:1 wrapper shares.
 
 **Key Concepts:**
-- Deposit/mint
-- Burn/withdraw
-- Pausable emergency
-
-## Prerequisites
-- [Basics](../basics.md), [Auth](../basics/03-authentication)
+- Cross-contract token transfers
+- Backing invariant maintenance
+- Mint/burn wrapper shares
+- Withdrawal and collateral accounting
 
 ## Prerequisites
 - [Basics](../basics.md), [Auth](../basics/03-authentication/)
