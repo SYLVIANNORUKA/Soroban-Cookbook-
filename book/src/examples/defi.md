@@ -2,6 +2,16 @@
 
 Decentralized finance on Soroban: AMMs, lending, yield protocols.
 
+### Yield Farming (Farming Pool)
+**Multi-pool reward distribution with admin controls**.
+
+**Key Concepts:**
+- [Farming Pool Management](file:///home/douglas/WAVE 2/Soroban-Cookbook--1/examples/defi/03-farming-pool/README.md)
+- Dynamic pool addition/removal
+- Reward rate and weight adjustment
+- Emergency administrative withdrawals
+- Precision scaling for yield calculations
+
 ## 📋 Coming Soon
 
 Planned examples:

@@ -32,6 +32,7 @@
 
 ## DeFi
 - [Overview & planned](./examples/defi.md)
+- [Farming Pool Management](./examples/defi.md)
 
 ## NFTs
 - [Overview & planned](./examples/nfts.md)
