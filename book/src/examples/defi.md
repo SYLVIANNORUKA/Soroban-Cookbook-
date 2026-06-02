@@ -2,19 +2,30 @@
 
 Decentralized finance on Soroban: AMMs, lending, yield protocols.
 
-### Yield Farming (Farming Pool)
-**Multi-pool reward distribution with admin controls**.
+## 📋 Examples (1 currently)
+
+### [01-vault-strategies](../examples/vault-strategies/)
+**Multi-strategy yield vault** with pluggable strategies and risk management.
 
 **Key Concepts:**
-- [Farming Pool Management](file:///home/douglas/WAVE 2/Soroban-Cookbook--1/examples/defi/03-farming-pool/README.md)
-- Dynamic pool addition/removal
-- Reward rate and weight adjustment
-- Emergency administrative withdrawals
-- Precision scaling for yield calculations
+- Strategy interface (`StrategyParams` + `StrategyType`)
+- Three strategy implementations: Conservative, Balanced, Aggressive
+- Admin-gated strategy switching with TVL circuit-breaker
+- Emergency pause (deposits blocked, withdrawals always open)
+- Allocation caps per strategy in basis points
+
+**Quick Code:**
+```rust
+// Switch to a higher-yield strategy
+client.switch_strategy(&admin, &StrategyType::Balanced);
+
+// Estimate yield for planning
+let yield_amount = client.estimate_yield(&10_000, &365);
+```
+
+---
 
 ## 📋 Coming Soon
-
-Planned examples:
 
 ### Automated Market Maker (AMM)
 **Constant product pools** (x*y=k).
@@ -31,17 +42,6 @@ Planned examples:
 - Oracle price feeds
 - Liquidation thresholds
 - Interest accrual
-
-### Yield Vault
-**Automated yield optimization**.
-
-**Key Concepts:**
-- Strategy rotation
-- Performance fees
-- Emergency withdrawal
-
-## Placeholder Content
-Currently empty `examples/defi/` directory.
 
 ## Prerequisites
 - [Basics](../basics.md), [Tokens](../tokens.md)
