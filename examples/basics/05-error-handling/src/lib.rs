@@ -89,7 +89,7 @@ pub enum DataKey {
 // Audit event payload
 // ---------------------------------------------------------------------------
 
-    /// Emitted whenever a deposit or withdrawal succeeds.
+/// Emitted whenever a deposit or withdrawal succeeds.
 #[contracttype]
 pub struct LedgerEventData {
     pub amount: i128,
@@ -180,6 +180,10 @@ impl ErrorDemoContract {
                 action: symbol_short!("deposit"),
             },
         );
+
+        Ok(new_balance)
+    }
+
     /// Withdraw `amount` from the caller's balance.
     ///
     /// ### Error returns (typed)

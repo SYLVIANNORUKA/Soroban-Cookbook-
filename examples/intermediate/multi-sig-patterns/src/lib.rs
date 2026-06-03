@@ -214,6 +214,8 @@ impl MultiPartyAuth {
 
     /// Get proposal details
     pub fn get_proposal(env: Env, proposal_id: u32) -> Option<Proposal> {
-        env.storage().persistent().get(&DataKey::Proposal(proposal_id))
+        env.storage()
+            .persistent()
+            .get(&DataKey::Proposal(proposal_id))
     }
 }

@@ -1,8 +1,23 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contractimpl, contracttype, symbol_short, Address, Bytes, Env, Symbol, Vec,
+    contract, contractevent, contractimpl, contracttype, symbol_short, xdr::ToXdr, Address, Bytes,
+    Env, Symbol, Vec,
 };
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdminEvent {
+    pub action: Symbol,
+    pub timestamp: u64,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AuditEvent {
+    pub details: Symbol,
+    pub timestamp: u64,
+}
 
 #[contract]
 pub struct MultiPartyAuthContract;
@@ -149,7 +164,7 @@ impl MultiPartyAuthContract {
         // Audit trail for multi-sig action
         env.events().publish(
             (CONTRACT_NS, ACTION_AUDIT),
-            AuditTrailEventData {
+            AuditEvent {
                 details: symbol_short!("msig_trf"),
                 timestamp: env.ledger().timestamp(),
             },
@@ -175,7 +190,7 @@ impl MultiPartyAuthContract {
         // Audit trail for encoded multi-sig action
         env.events().publish(
             (CONTRACT_NS, ACTION_AUDIT),
-            AuditTrailEventData {
+            AuditEvent {
                 details: symbol_short!("msig_enc"),
                 timestamp: env.ledger().timestamp(),
             },
@@ -216,7 +231,7 @@ impl MultiPartyAuthContract {
         // Emit success event
         env.events().publish(
             (CONTRACT_NS, ACTION_ADMIN),
-            AdminActionEventData {
+            AdminEvent {
                 action: proposal_id,
                 timestamp: env.ledger().timestamp(),
             },
@@ -224,12 +239,7 @@ impl MultiPartyAuthContract {
     }
 
     /// Setup a new proposal's threshold and signer list (admin only).
-    pub fn setup_proposal(
-        env: Env,
-        proposal_id: Symbol,
-        threshold: u32,
-        signers: Vec<Address>,
-    ) {
+    pub fn setup_proposal(env: Env, proposal_id: Symbol, threshold: u32, signers: Vec<Address>) {
         // In a real contract, this would have its own authorization check.
         // For the example, we just enforce the threshold constraint.
         if threshold == 0 || threshold > signers.len() {
@@ -269,8 +279,8 @@ impl MultiPartyAuthContract {
 
                 // Lexicographical comparison of strkeys
                 if addr_a.to_string() > addr_b.to_string() {
-                    sorted.set(j, &addr_b);
-                    sorted.set(j + 1, &addr_a);
+                    sorted.set(j, addr_b);
+                    sorted.set(j + 1, addr_a);
                 }
             }
         }
@@ -308,8 +318,7 @@ impl MultiPartyAuthContract {
         // Payload: N x 56-byte strkeys
         for addr in signers.iter() {
             let strkey = addr.to_string();
-            // strkey.to_bytes() returns Bytes, we append it
-            buf.append(&strkey.to_xdr(env)); // This is a simplification; real impl would use strkey bytes
+            buf.append(&strkey.to_xdr(env));
         }
 
         buf
@@ -331,12 +340,12 @@ impl MultiPartyAuthContract {
         // In a real implementation, we would slice ADDR_BYTES from the buffer
         // and validate order. For this example, we'll assume the vector was
         // produced by our `encode_auth_vec`.
-        let mut signers = Vec::new(env);
+        let signers = Vec::new(env);
         // ... decoding logic ...
         signers
     }
 
-    fn is_valid_encoding(env: &Env, encoded: &Bytes) -> bool {
+    fn is_valid_encoding(_env: &Env, encoded: &Bytes) -> bool {
         if encoded.len() < HEADER_LEN {
             return false;
         }
@@ -354,12 +363,12 @@ impl MultiPartyAuthContract {
 // ---------------------------------------------------------------------------
 
 fn u32_to_bytes(env: &Env, val: u32) -> Bytes {
-    let mut b = Bytes::new(env);
-    b.push(((val >> 24) & 0xff) as u8);
-    b.push(((val >> 16) & 0xff) as u8);
-    b.push(((val >> 8) & 0xff) as u8);
-    b.push((val & 0xff) as u8);
-    b
+    let mut b = [0u8; 4];
+    b[0] = ((val >> 24) & 0xff) as u8;
+    b[1] = ((val >> 16) & 0xff) as u8;
+    b[2] = ((val >> 8) & 0xff) as u8;
+    b[3] = (val & 0xff) as u8;
+    Bytes::from_array(env, &b)
 }
 
 fn read_u32(buf: &Bytes, offset: u32) -> u32 {

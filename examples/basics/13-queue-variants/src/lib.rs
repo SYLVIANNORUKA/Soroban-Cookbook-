@@ -1,6 +1,8 @@
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, contracttype, symbol_short, Address, Bytes, Env, Symbol};
+use soroban_sdk::{
+    contract, contractimpl, contracttype, symbol_short, Address, Bytes, Env, Symbol,
+};
 
 // Bounded queue -----------------------------------------------------------
 
@@ -97,8 +99,7 @@ impl BoundedQueueContract {
         let val: Bytes = env
             .storage()
             .persistent()
-            .get(&BQKey::Element(idx)
-            )
+            .get(&BQKey::Element(idx))
             .expect("element missing");
         env.storage().persistent().remove(&BQKey::Element(idx));
         m.head += 1;

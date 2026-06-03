@@ -437,7 +437,7 @@ impl CustomStructsContract {
         let mut profile: UserProfile = env
             .storage()
             .instance()
-            .get(&(symbol_short!("profile"), address))
+            .get(&(symbol_short!("profile"), address.clone()))
             .ok_or(ContractError::UserNotFound)?;
 
         // Update fields if provided
@@ -469,7 +469,8 @@ impl CustomStructsContract {
     ) -> Result<Portfolio, ContractError> {
         let portfolio = Portfolio {
             owner,
-            name: name,
+            name,
+
             description,
             holdings: Vec::new(&env),
             metadata: PortfolioMetadata {
