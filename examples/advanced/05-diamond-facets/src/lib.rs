@@ -157,10 +157,8 @@ impl TokenFacet {
             .persistent()
             .set(&DataKey::Balance(to.clone()), &(to_bal + amount));
 
-        env.events().publish(
-            (NS_TOKEN, symbol_short!("transfer"), from, to),
-            amount,
-        );
+        env.events()
+            .publish((NS_TOKEN, symbol_short!("transfer"), from, to), amount);
     }
 
     /// Query the balance of `owner`.
@@ -218,10 +216,9 @@ impl TokenFacet {
         env.storage()
             .persistent()
             .set(&DataKey::Balance(to.clone()), &(to_bal + amount));
-        env.storage().persistent().set(
-            &DataKey::Allowance(from, spender),
-            &(allowance - amount),
-        );
+        env.storage()
+            .persistent()
+            .set(&DataKey::Allowance(from, spender), &(allowance - amount));
     }
 }
 
@@ -274,8 +271,10 @@ impl AccessFacet {
         env.storage()
             .persistent()
             .set(&DataKey::Role(account.clone()), &ROLE_USER);
-        env.events()
-            .publish((NS_ACCESS, symbol_short!("revoke"), admin, account), ROLE_USER);
+        env.events().publish(
+            (NS_ACCESS, symbol_short!("revoke"), admin, account),
+            ROLE_USER,
+        );
     }
 
     /// Return the role level of `account`.
@@ -365,16 +364,12 @@ impl RegistryFacet {
 
     /// Read an entry value (returns None if not found).
     pub fn get_entry(env: Env, key: Symbol) -> Option<String> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::RegEntry(key))
+        env.storage().persistent().get(&DataKey::RegEntry(key))
     }
 
     /// Read the owner of an entry.
     pub fn get_owner(env: Env, key: Symbol) -> Option<Address> {
-        env.storage()
-            .persistent()
-            .get(&DataKey::RegOwner(key))
+        env.storage().persistent().get(&DataKey::RegOwner(key))
     }
 }
 
@@ -414,12 +409,8 @@ impl DiamondRouter {
             !env.storage().instance().has(&RouterKey::Token),
             "already registered"
         );
-        env.storage()
-            .instance()
-            .set(&RouterKey::Token, &token);
-        env.storage()
-            .instance()
-            .set(&RouterKey::Access, &access);
+        env.storage().instance().set(&RouterKey::Token, &token);
+        env.storage().instance().set(&RouterKey::Access, &access);
         env.storage()
             .instance()
             .set(&RouterKey::Registry, &registry);

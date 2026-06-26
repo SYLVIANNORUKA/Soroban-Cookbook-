@@ -239,9 +239,11 @@ impl VotingContract {
             .persistent()
             .set(&DataKey::Proposal(proposal_id.clone()), &proposal);
         // Keep alive well beyond the voting window.
-        env.storage()
-            .persistent()
-            .extend_ttl(&DataKey::Proposal(proposal_id.clone()), 17_280, 120_960);
+        env.storage().persistent().extend_ttl(
+            &DataKey::Proposal(proposal_id.clone()),
+            17_280,
+            120_960,
+        );
 
         env.events().publish(
             (CONTRACT_NS, EV_PROPOSED, creator, proposal_id),
@@ -288,7 +290,9 @@ impl VotingContract {
 
         // Record the vote.
         env.storage().persistent().set(&vote_key, &support);
-        env.storage().persistent().extend_ttl(&vote_key, 17_280, 120_960);
+        env.storage()
+            .persistent()
+            .extend_ttl(&vote_key, 17_280, 120_960);
 
         if support {
             proposal.votes_for += 1;
@@ -397,11 +401,7 @@ impl VotingContract {
     ///
     /// In a real DAO this would dispatch to a target contract. Here it
     /// records the execution and transitions state to `Executed`.
-    pub fn execute(
-        env: Env,
-        admin: Address,
-        proposal_id: ProposalId,
-    ) -> Result<(), VotingError> {
+    pub fn execute(env: Env, admin: Address, proposal_id: ProposalId) -> Result<(), VotingError> {
         Self::require_initialized(&env)?;
         Self::require_admin(&env, &admin)?;
         admin.require_auth();

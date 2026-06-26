@@ -976,10 +976,7 @@ fn test_error_handling_deposit_withdraw() {
     let env = Env::default();
     env.mock_all_auths();
 
-    let id = env.register_contract(
-        None,
-        error_handling::ErrorDemoContract,
-    );
+    let id = env.register_contract(None, error_handling::ErrorDemoContract);
     let client = error_handling::ErrorDemoContractClient::new(&env, &id);
 
     let admin = Address::generate(&env);
@@ -1037,10 +1034,7 @@ fn test_error_handling_paused_contract() {
     assert!(client.is_paused());
 
     let err = client.try_deposit(&user, &100i128);
-    assert_eq!(
-        err,
-        Err(Ok(error_handling::ContractError::ContractPaused))
-    );
+    assert_eq!(err, Err(Ok(error_handling::ContractError::ContractPaused)));
 
     client.unpause(&admin);
     assert!(!client.is_paused());
@@ -1158,13 +1152,7 @@ fn test_cross_contract_full_pipeline() {
         env.invoke_contract::<()>(
             &storage_id,
             &Symbol::new(&env, "set_persistent"),
-            Vec::from_array(
-                &env,
-                [
-                    key.into_val(&env),
-                    ((i + 1) as u64).into_val(&env),
-                ],
-            ),
+            Vec::from_array(&env, [key.into_val(&env), ((i + 1) as u64).into_val(&env)]),
         );
         env.invoke_contract::<()>(&events_id, &symbol_short!("increment"), Vec::new(&env));
     }
@@ -1371,8 +1359,7 @@ fn test_events_multiple_types() {
         env.invoke_contract::<()>(&id, &symbol_short!("increment"), Vec::new(&env));
     }
 
-    let count: u32 =
-        env.invoke_contract(&id, &Symbol::new(&env, "get_number"), Vec::new(&env));
+    let count: u32 = env.invoke_contract(&id, &Symbol::new(&env, "get_number"), Vec::new(&env));
     assert_eq!(count, 3);
 }
 
@@ -1454,8 +1441,7 @@ fn test_full_auth_timelock_events_workflow() {
         env.invoke_contract(&events_id, &Symbol::new(&env, "get_number"), Vec::new(&env));
     assert_eq!(event_count, 2);
 
-    let final_state =
-        timelock::TimelockContractClient::new(&env, &timelock_id).get_state(&op_id);
+    let final_state = timelock::TimelockContractClient::new(&env, &timelock_id).get_state(&op_id);
     assert_eq!(final_state, timelock::OperationState::Unknown);
 }
 
@@ -1592,10 +1578,7 @@ fn test_auth_context_invoker_and_admin() {
     let result: u32 = env.invoke_contract(
         &auth_id,
         &Symbol::new(&env, "admin_action"),
-        Vec::from_array(
-            &env,
-            [admin.clone().into_val(&env), 7u32.into_val(&env)],
-        ),
+        Vec::from_array(&env, [admin.clone().into_val(&env), 7u32.into_val(&env)]),
     );
     assert_eq!(result, 14); // admin_action returns value * 2
 }

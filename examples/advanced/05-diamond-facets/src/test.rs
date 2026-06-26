@@ -206,10 +206,7 @@ fn test_registry_update_by_owner() {
     client.set_entry(&owner, &key, &String::from_str(&env, "v1"));
     client.set_entry(&owner, &key, &String::from_str(&env, "v2"));
 
-    assert_eq!(
-        client.get_entry(&key),
-        Some(String::from_str(&env, "v2"))
-    );
+    assert_eq!(client.get_entry(&key), Some(String::from_str(&env, "v2")));
 }
 
 #[test]
@@ -262,7 +259,10 @@ fn test_router_register_and_query_facets() {
 
     assert_eq!(router.get_facet(&symbol_short!("token")), Some(token_id));
     assert_eq!(router.get_facet(&symbol_short!("access")), Some(access_id));
-    assert_eq!(router.get_facet(&symbol_short!("registry")), Some(registry_id));
+    assert_eq!(
+        router.get_facet(&symbol_short!("registry")),
+        Some(registry_id)
+    );
     assert_eq!(router.get_facet(&symbol_short!("unknown")), None);
 }
 
