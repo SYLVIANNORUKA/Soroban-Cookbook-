@@ -1,7 +1,8 @@
 #![no_std]
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, symbol_short, Address, Env, String, Symbol, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env, String,
+    Symbol, Vec,
 };
 
 #[contracttype]
@@ -61,6 +62,51 @@ pub enum ProposalError {
     ProposalFailed = 12,
 }
 
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct GovernanceInitialized {
+    pub admin: Address,
+    pub min_quorum: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProposalCreated {
+    pub proposer: Address,
+    pub proposal_id: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProposalSubmitted {
+    pub proposal_id: u32,
+    pub voting_end_ledger: u32,
+    pub execution_end_ledger: u32,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct VoteCast {
+    pub proposal_id: u32,
+    pub voter: Address,
+    pub approve: bool,
+    pub weight: i128,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProposalExecuted {
+    pub proposal_id: u32,
+    pub executor: Address,
+}
+
+#[contractevent]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ProposalCancelled {
+    pub proposal_id: u32,
+    pub cancelled_by: Address,
+}
+
 #[contract]
 pub struct ProposalLifecycleContract;
 
@@ -73,12 +119,11 @@ impl ProposalLifecycleContract {
         admin.require_auth();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage().instance().set(&DataKey::ProposalCount, &0u32);
-        env.storage().instance().set(&DataKey::MinQuorum, &min_quorum);
-        
-        env.events().publish(
-            (symbol_short!("init"), symbol_short!("gov")),
-            (admin, min_quorum),
-        );
+        env.storage()
+            .instance()
+            .set(&DataKey::MinQuorum, &min_quorum);
+
+        GovernanceInitialized { admin, min_quorum }.publish(&env);
         Ok(())
     }
 
@@ -91,13 +136,13 @@ impl ProposalLifecycleContract {
         action_args: Vec<soroban_sdk::Val>,
     ) -> Result<u32, ProposalError> {
         proposer.require_auth();
-        
+
         let count: u32 = env
             .storage()
             .instance()
             .get(&DataKey::ProposalCount)
             .ok_or(ProposalError::NotInitialized)?;
-            
+
         let proposal = Proposal {
             id: count,
             proposer: proposer.clone(),
@@ -111,15 +156,20 @@ impl ProposalLifecycleContract {
             voting_end_ledger: 0,
             execution_end_ledger: 0,
         };
-        
-        env.storage().persistent().set(&DataKey::Proposal(count), &proposal);
-        env.storage().instance().set(&DataKey::ProposalCount, &(count + 1));
-        
-        env.events().publish(
-            (symbol_short!("proposal"), symbol_short!("create")),
-            (proposer, count),
-        );
-        
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(count), &proposal);
+        env.storage()
+            .instance()
+            .set(&DataKey::ProposalCount, &(count + 1));
+
+        ProposalCreated {
+            proposer,
+            proposal_id: count,
+        }
+        .publish(&env);
+
         Ok(count)
     }
 
@@ -131,35 +181,39 @@ impl ProposalLifecycleContract {
         execution_duration: u32,
     ) -> Result<(), ProposalError> {
         proposer.require_auth();
-        
+
         let mut proposal: Proposal = env
             .storage()
             .persistent()
             .get(&DataKey::Proposal(proposal_id))
             .ok_or(ProposalError::ProposalNotFound)?;
-            
+
         if proposal.proposer != proposer {
             return Err(ProposalError::Unauthorized);
         }
-        
+
         if proposal.state != ProposalState::Draft {
             return Err(ProposalError::InvalidState);
         }
-        
+
         let voting_end = env.ledger().sequence() + voting_duration;
         let execution_end = voting_end + execution_duration;
-        
+
         proposal.state = ProposalState::Active;
         proposal.voting_end_ledger = voting_end;
         proposal.execution_end_ledger = execution_end;
-        
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
-        
-        env.events().publish(
-            (symbol_short!("proposal"), symbol_short!("submit")),
-            (proposal_id, voting_end, execution_end),
-        );
-        
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
+
+        ProposalSubmitted {
+            proposal_id,
+            voting_end_ledger: voting_end,
+            execution_end_ledger: execution_end,
+        }
+        .publish(&env);
+
         Ok(())
     }
 
@@ -171,53 +225,62 @@ impl ProposalLifecycleContract {
         weight: i128,
     ) -> Result<(), ProposalError> {
         voter.require_auth();
-        
+
         let mut proposal: Proposal = env
             .storage()
             .persistent()
             .get(&DataKey::Proposal(proposal_id))
             .ok_or(ProposalError::ProposalNotFound)?;
-            
+
         let current_state = Self::resolve_proposal_state(&env, &proposal);
         if current_state != ProposalState::Active {
             return Err(ProposalError::InvalidState);
         }
-        
+
         if env.ledger().sequence() > proposal.voting_end_ledger {
             return Err(ProposalError::VotingEnded);
         }
-        
+
         let vote_key = DataKey::Voted(proposal_id, voter.clone());
         if env.storage().persistent().has(&vote_key) {
             return Err(ProposalError::AlreadyVoted);
         }
-        
+
         if approve {
             proposal.votes_yes += weight;
         } else {
             proposal.votes_no += weight;
         }
-        
+
         env.storage().persistent().set(&vote_key, &true);
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
-        
-        env.events().publish(
-            (symbol_short!("proposal"), symbol_short!("vote")),
-            (proposal_id, voter, approve, weight),
-        );
-        
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
+
+        VoteCast {
+            proposal_id,
+            voter,
+            approve,
+            weight,
+        }
+        .publish(&env);
+
         Ok(())
     }
 
-    pub fn execute_proposal(env: Env, executor: Address, proposal_id: u32) -> Result<(), ProposalError> {
+    pub fn execute_proposal(
+        env: Env,
+        executor: Address,
+        proposal_id: u32,
+    ) -> Result<(), ProposalError> {
         executor.require_auth();
-        
+
         let mut proposal: Proposal = env
             .storage()
             .persistent()
             .get(&DataKey::Proposal(proposal_id))
             .ok_or(ProposalError::ProposalNotFound)?;
-            
+
         let current_state = Self::resolve_proposal_state(&env, &proposal);
         if current_state != ProposalState::Passed {
             if current_state == ProposalState::Expired {
@@ -228,57 +291,69 @@ impl ProposalLifecycleContract {
             }
             return Err(ProposalError::InvalidState);
         }
-        
-        // Execute cross-contract call
+
         env.invoke_contract::<()>(
             &proposal.target_contract,
             &proposal.action,
             proposal.action_args.clone(),
         );
-        
+
         proposal.state = ProposalState::Executed;
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
-        
-        env.events().publish(
-            (symbol_short!("proposal"), symbol_short!("execute")),
-            (proposal_id, executor),
-        );
-        
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
+
+        ProposalExecuted {
+            proposal_id,
+            executor,
+        }
+        .publish(&env);
+
         Ok(())
     }
 
-    pub fn cancel_proposal(env: Env, caller: Address, proposal_id: u32) -> Result<(), ProposalError> {
+    pub fn cancel_proposal(
+        env: Env,
+        caller: Address,
+        proposal_id: u32,
+    ) -> Result<(), ProposalError> {
         caller.require_auth();
-        
+
         let mut proposal: Proposal = env
             .storage()
             .persistent()
             .get(&DataKey::Proposal(proposal_id))
             .ok_or(ProposalError::ProposalNotFound)?;
-            
+
         let current_state = Self::resolve_proposal_state(&env, &proposal);
-        if current_state == ProposalState::Executed || current_state == ProposalState::Cancelled || current_state == ProposalState::Expired {
+        if current_state == ProposalState::Executed
+            || current_state == ProposalState::Cancelled
+            || current_state == ProposalState::Expired
+        {
             return Err(ProposalError::InvalidState);
         }
-        
+
         let admin: Address = env
             .storage()
             .instance()
             .get(&DataKey::Admin)
             .ok_or(ProposalError::NotInitialized)?;
-            
+
         if caller != proposal.proposer && caller != admin {
             return Err(ProposalError::Unauthorized);
         }
-        
+
         proposal.state = ProposalState::Cancelled;
-        env.storage().persistent().set(&DataKey::Proposal(proposal_id), &proposal);
-        
-        env.events().publish(
-            (symbol_short!("proposal"), symbol_short!("cancel")),
-            (proposal_id, caller),
-        );
-        
+        env.storage()
+            .persistent()
+            .set(&DataKey::Proposal(proposal_id), &proposal);
+
+        ProposalCancelled {
+            proposal_id,
+            cancelled_by: caller,
+        }
+        .publish(&env);
+
         Ok(())
     }
 
@@ -288,39 +363,41 @@ impl ProposalLifecycleContract {
             .persistent()
             .get(&DataKey::Proposal(proposal_id))
             .ok_or(ProposalError::ProposalNotFound)?;
-            
+
         proposal.state = Self::resolve_proposal_state(&env, &proposal);
         Ok(proposal)
     }
-    
+
     pub fn get_proposal_state(env: Env, proposal_id: u32) -> Result<ProposalState, ProposalError> {
         let proposal = Self::get_proposal(env.clone(), proposal_id)?;
         Ok(proposal.state)
     }
 
     fn resolve_proposal_state(env: &Env, proposal: &Proposal) -> ProposalState {
-        if proposal.state == ProposalState::Draft || proposal.state == ProposalState::Executed || proposal.state == ProposalState::Cancelled {
+        if proposal.state == ProposalState::Draft
+            || proposal.state == ProposalState::Executed
+            || proposal.state == ProposalState::Cancelled
+        {
             return proposal.state;
         }
-        
+
         let seq = env.ledger().sequence();
         if proposal.state == ProposalState::Active {
             if seq <= proposal.voting_end_ledger {
                 return ProposalState::Active;
             }
-            
-            // Voting has ended, check outcomes
+
             let min_quorum: i128 = env
                 .storage()
                 .instance()
                 .get(&DataKey::MinQuorum)
                 .unwrap_or(0);
-                
+
             let total_votes = proposal.votes_yes + proposal.votes_no;
             if total_votes < min_quorum {
                 return ProposalState::Failed;
             }
-            
+
             if proposal.votes_yes > proposal.votes_no {
                 if seq <= proposal.execution_end_ledger {
                     return ProposalState::Passed;
@@ -331,7 +408,7 @@ impl ProposalLifecycleContract {
                 return ProposalState::Failed;
             }
         }
-        
+
         proposal.state
     }
 }

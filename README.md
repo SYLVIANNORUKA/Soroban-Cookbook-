@@ -198,6 +198,7 @@ Reference docs in [docs/](./docs/):
 - [Quick Reference](./docs/quick-reference.md) — Cheat sheet for common patterns
 - [Glossary](./docs/glossary.md) — Key terms and concepts
 - [Troubleshooting](./docs/troubleshooting.md) — Common build, test, and deployment issues with solutions
+
 - [Wallet Ecosystem Survey](./book/src/docs/wallet-ecosystem.md) — Research, features comparison, and integration priority list for Soroban-compatible wallets
 
 
