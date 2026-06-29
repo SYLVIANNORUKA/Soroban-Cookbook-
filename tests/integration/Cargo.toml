@@ -19,3 +19,4 @@ multi_sig_patterns = { path = "../../examples/intermediate/multi-sig-patterns", 
 multi_party_auth = { path = "../../examples/advanced/01-multi-party-auth", package = "multi-party-auth" }
 timelock = { path = "../../examples/advanced/02-timelock", package = "timelock" }
 token_wrapper = { path = "../../examples/tokens/token-wrapper", package = "token-wrapper" }
+simple_voting = { path = "../../examples/governance/01-simple-voting", package = "simple-voting" }
