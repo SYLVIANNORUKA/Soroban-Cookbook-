@@ -543,63 +543,6 @@ impl NftMetadataContract {
         Ok(())
     }
 
-    // ==================== METADATA VALIDATION ====================
-
-    /// Validate a `TokenMetadata` record.
-    ///
-    /// ### Rules
-    ///
-    /// **Required fields (must be non-empty):**
-    /// - `name`
-    /// - `description`
-    /// - `image`
-    ///
-    /// **Image URI scheme:**
-    /// The `image` field must start with one of:
-    /// - `ipfs://`
-    /// - `https://`
-    /// - `http://`
-    /// - `data:`
-    ///
-    /// **Background color (when non-empty):**
-    /// Must be exactly 6 ASCII hex characters (`0-9`, `a-f`, `A-F`).
-    ///
-    /// **Attributes:**
-    /// Every `Attribute` must have a non-empty `trait_type` and `value`.
-    pub fn validate_metadata(env: &Env, meta: &TokenMetadata) -> Result<(), NftError> {
-        // Required: name
-        if meta.name.len() == 0 {
-            return Err(NftError::MetadataFieldEmpty);
-        }
-        // Required: description
-        if meta.description.len() == 0 {
-            return Err(NftError::MetadataFieldEmpty);
-        }
-        // Required: image
-        if meta.image.len() == 0 {
-            return Err(NftError::MetadataFieldEmpty);
-        }
-
-        // Image URI scheme validation
-        if !is_valid_uri(env, &meta.image) {
-            return Err(NftError::InvalidImageUri);
-        }
-
-        // Background color: must be empty OR exactly 6 hex chars
-        if meta.background_color.len() > 0 && !is_valid_hex_color(&meta.background_color) {
-            return Err(NftError::InvalidBackgroundColor);
-        }
-
-        // Attributes: each must have non-empty trait_type and value
-        for attr in meta.attributes.iter() {
-            if attr.trait_type.len() == 0 || attr.value.len() == 0 {
-                return Err(NftError::InvalidAttribute);
-            }
-        }
-
-        Ok(())
-    }
-
     // ==================== ADMIN ====================
 
     /// Returns the current admin address.
@@ -662,26 +605,26 @@ impl NftMetadataContract {
     }
 
     /// Execute the token transfer: update owner, balances, clear approval.
-    fn do_transfer(env: &Env, from: &Address, to: &Address, token_id: u32) -> Result<(), NftError> {
+    ///
+    /// Authorization is enforced by the caller (`transfer` runs `check_approved` first).
+    /// Balance updates always use the stored owner, so approved spenders and operators
+    /// can transfer without being the owner address themselves.
+    fn do_transfer(env: &Env, _from: &Address, to: &Address, token_id: u32) -> Result<(), NftError> {
         let owner: Address = env
             .storage()
             .persistent()
             .get(&DataKey::Owner(token_id))
             .ok_or(NftError::TokenNotFound)?;
 
-        if from != &owner {
-            return Err(NftError::NotOwner);
-        }
-
-        // Decrement sender balance
+        // Decrement current owner balance
         let from_bal: u32 = env
             .storage()
             .persistent()
-            .get(&DataKey::Balance(from.clone()))
+            .get(&DataKey::Balance(owner.clone()))
             .unwrap_or(0);
         env.storage()
             .persistent()
-            .set(&DataKey::Balance(from.clone()), &from_bal.saturating_sub(1));
+            .set(&DataKey::Balance(owner.clone()), &from_bal.saturating_sub(1));
 
         // Increment recipient balance
         let to_bal: u32 = env
@@ -708,6 +651,63 @@ impl NftMetadataContract {
         env.storage()
             .persistent()
             .remove(&DataKey::Approved(token_id));
+
+        Ok(())
+    }
+}
+
+impl NftMetadataContract {
+    /// Validate a `TokenMetadata` record.
+    ///
+    /// ### Rules
+    ///
+    /// **Required fields (must be non-empty):**
+    /// - `name`
+    /// - `description`
+    /// - `image`
+    ///
+    /// **Image URI scheme:**
+    /// The `image` field must start with one of:
+    /// - `ipfs://`
+    /// - `https://`
+    /// - `http://`
+    /// - `data:`
+    ///
+    /// **Background color (when non-empty):**
+    /// Must be exactly 6 ASCII hex characters (`0-9`, `a-f`, `A-F`).
+    ///
+    /// **Attributes:**
+    /// Every `Attribute` must have a non-empty `trait_type` and `value`.
+    pub fn validate_metadata(env: &Env, meta: &TokenMetadata) -> Result<(), NftError> {
+        // Required: name
+        if meta.name.len() == 0 {
+            return Err(NftError::MetadataFieldEmpty);
+        }
+        // Required: description
+        if meta.description.len() == 0 {
+            return Err(NftError::MetadataFieldEmpty);
+        }
+        // Required: image
+        if meta.image.len() == 0 {
+            return Err(NftError::MetadataFieldEmpty);
+        }
+
+        // Image URI scheme validation
+        if !is_valid_uri(env, &meta.image) {
+            return Err(NftError::InvalidImageUri);
+        }
+
+        // Background color: must be empty OR exactly 6 hex chars
+        if meta.background_color.len() > 0 && !is_valid_hex_color(&meta.background_color) {
+            return Err(NftError::InvalidBackgroundColor);
+        }
+
+        // Attributes: each must have non-empty trait_type and value
+        for attr in meta.attributes.iter() {
+            if attr.trait_type.len() == 0 || attr.value.len() == 0 {
+                return Err(NftError::InvalidAttribute);
+            }
+        }
 
         Ok(())
     }
