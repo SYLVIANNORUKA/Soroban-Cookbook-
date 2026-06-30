@@ -609,7 +609,12 @@ impl NftMetadataContract {
     /// Authorization is enforced by the caller (`transfer` runs `check_approved` first).
     /// Balance updates always use the stored owner, so approved spenders and operators
     /// can transfer without being the owner address themselves.
-    fn do_transfer(env: &Env, _from: &Address, to: &Address, token_id: u32) -> Result<(), NftError> {
+    fn do_transfer(
+        env: &Env,
+        _from: &Address,
+        to: &Address,
+        token_id: u32,
+    ) -> Result<(), NftError> {
         let owner: Address = env
             .storage()
             .persistent()
@@ -622,9 +627,10 @@ impl NftMetadataContract {
             .persistent()
             .get(&DataKey::Balance(owner.clone()))
             .unwrap_or(0);
-        env.storage()
-            .persistent()
-            .set(&DataKey::Balance(owner.clone()), &from_bal.saturating_sub(1));
+        env.storage().persistent().set(
+            &DataKey::Balance(owner.clone()),
+            &from_bal.saturating_sub(1),
+        );
 
         // Increment recipient balance
         let to_bal: u32 = env
